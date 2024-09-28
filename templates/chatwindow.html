@@ -1,0 +1,44 @@
+{% load partials %}
+{% startpartial film-item %}
+ 
+    <div class="chatDiv">
+        {% if room is not None %}
+        <div class="header-chat">
+        <i class="icon fa fa-user-o" aria-hidden="true"></i>
+        <p class="name">{{room.room_name}}</p>
+        <i class="icon clickable fa fa-ellipsis-h right" aria-hidden="true"></i>
+        </div>
+        <div class="messages-chat" id="chat-container">
+
+        {% for msg in messages %}
+            {% if msg.user == request.user %}
+            <div class="message">
+                <div class="response">
+                <p class="text">{{msg.msg}}</p>
+                </div>
+            </div>
+            <p class="response-time time">me</p>
+            {% else %}
+            <div class="message">
+                <p class="text">{{msg.msg}}</p>
+            </div>
+            <p class="time">{{msg.user.username}}</p>
+            {% endif %}
+        
+        {% endfor %}
+        </div>
+        <div class="footer-chat">
+        <i class="icon fa fa-smile-o clickable" style="font-size:25pt;" aria-hidden="true"></i>
+        <input type="text" id="write-message" class="write-message" placeholder="Type your message here"></input>
+        <i class="icon send fa fa-paper-plane-o clickable" id="send-msg-btn" aria-hidden="true"></i>
+        </div>
+        {% else %}
+        <div class="no-room-name">
+        <h1>Select or Create Group to Start Messaging</h1>
+        </div>
+        {% endif %}
+    </div>
+
+
+
+{% endpartial %}

@@ -1,0 +1,280 @@
+{% load static %}
+
+
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <title>Chat App - Room</title>
+  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'>
+<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Montserrat'>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha.6/css/bootstrap.min.css'>
+<link rel="stylesheet" href="/static/css/chat/style.css">
+
+</head>
+<body>
+<body>
+  <div class="container">
+    <div class="row">
+      <nav class="menu">
+        <ul class="items">
+
+          <li class="item">
+            <i class="fa fa-home" aria-hidden="true"></i>
+          </li>
+          <li class="item" id="item-one">
+            <i class="fa fa-user" aria-hidden="true"></i>
+            <p>Users</p>
+          </li>
+          <li class="item item-active" id="item-two">
+            <i class="fa fa-commenting" aria-hidden="true"></i>
+            <p>Groups</p>
+          </li>
+        
+        </ul>
+      </nav>
+
+      <div class="new-grp-formdiv" id="new-grp-formdiv">
+        <form method="post" class="login-form">
+          <div class="form-content">
+            {% csrf_token %}
+            <input type="text" name="room_name" id="room_name" required>
+            <button type="submit">Add New Group</button>
+         </div>
+        </form>
+      </div>
+
+      <section class="discussions">
+        <div class="discussion search">
+          <div class="searchbar">
+            <i class="fa fa-search" aria-hidden="true"></i>
+            <input type="text" placeholder="Search..."></input>
+          </div>
+        </div>
+        <div class="errmsg">{{errmsg}}</div>
+        <div class="scrollable-discussion">
+
+            {% for r in all_rooms %}
+            <div class="discussion {% if r == room %}message-active{% endif %}" id="{{r.room_name}}">
+              <div class="desc-contact">
+                <p class="name">{{r.room_name}}</p>
+                <!-- <p class="message">9 pm at the bar if possible 😳</p> -->
+              </div>
+              <div class="timer">12 sec</div>
+            </div>
+            {% endfor %}
+          <div id="discussion">
+            <div class="desc-contact" id="new-grp-btn-div">
+              <button id="new-grp-btn">Create New Group</button>
+            </div>
+          </div>
+
+      </div>
+      </section>
+      <section class="chat" id="chat-section">
+          {% if room is not None %}
+          <div class="header-chat">
+            <i class="icon fa fa-user-o" aria-hidden="true"></i>
+            <p class="name">{{room.room_name}}</p>
+            <i class="icon clickable fa fa-ellipsis-h right" aria-hidden="true"></i>
+          </div>
+          <div class="messages-chat" id="chat-container">
+
+            {% for msg in messages %}
+              {% if msg.user == request.user %}
+                <div class="message">
+                  <div class="response">
+                    <p class="text">{{msg.msg}}</p>
+                  </div>
+                </div>
+                <p class="response-time time">me</p>
+              {% else %}
+                <div class="message">
+                  <p class="text">{{msg.msg}}</p>
+                </div>
+                <p class="time">{{msg.user.username}}</p>
+              {% endif %}
+              
+                
+            {% endfor %}
+          </div>
+          <div class="footer-chat">
+            <i class="icon fa fa-smile-o clickable" style="font-size:25pt;" aria-hidden="true"></i>
+            <input type="text" id="write-message" class="write-message" placeholder="Type your message here"></input>
+            <i class="icon send fa fa-paper-plane-o clickable" id="send-msg-btn" aria-hidden="true"></i>
+          </div>
+          {% else %}
+          <div class="no-room-name">
+            <h1>Select Group or User to Start Messaging</h1>
+          </div>
+          {% endif %}
+      </section>
+    </div>
+  </div>
+</body>
+
+   <script> 
+    const currUserName = "{{request.user.username}}";
+
+
+    const new_grp_btn = document.getElementById('new-grp-btn')
+    if(new_grp_btn != null){
+      new_grp_btn.addEventListener('click', (e)=>{
+        const new_grp_form_ele = document.getElementById('new-grp-formdiv')
+        new_grp_form_ele.style.display = 'block'
+      })
+    }
+    
+    
+    const flag = "{{flag}}"
+    // if(flag == 1){
+    //   document.getElementById('item-one').classList.add('item-active')
+    // }
+    // else{
+    //   document.getElementById('item-two').classList.add('item-active')
+    // }
+    // item-active
+    const items = document.querySelectorAll('.item')
+    items.forEach(item =>{
+      item.addEventListener('click',(e)=>{
+
+        if(e.currentTarget.id == 'item-one'){
+          window.location.href = `http://${window.location.host}/pm/-1`;
+        }
+        else{
+          window.location.href = `http://${window.location.host}/-1`;
+        }
+
+      })
+    })
+    
+    let webSocket = null
+
+    const grp_boxes = document.querySelectorAll('.discussion')
+    
+    grp_boxes.forEach(grp_box => {
+      grp_box.addEventListener('click',(e)=>{
+        
+        const msg_active = document.querySelector(".message-active")
+        if(msg_active != null){
+          msg_active.classList.remove("message-active")
+        }
+        e.currentTarget.classList.add("message-active")
+        
+        window.location.href = `http://${window.location.host}/${e.currentTarget.id.trim()}`;
+        
+        
+      })
+    })
+
+
+    if("{{room}}" != "None"){
+      connect("{{room}}")
+    }
+    else{
+      console.log("hi")
+    }
+    
+
+    function connect(roomName){
+     
+      // webSocket = new WebSocket(`wss://${window.location.host}/ws/chat/${roomName}/`)
+      webSocket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/`)
+    
+      webSocket.onopen = function(e){
+        console.log("Successfully connected to the WebSocket")
+      }
+      webSocket.onclose = function(e){
+        console.log("WebSocket closed")
+      }
+
+      webSocket.onmessage = function(e){
+        const data = JSON.parse(e.data);
+        let chatContainer = document.getElementById('chat-container')
+        switch (data.type) {
+            case "chat_message":
+                if(data.user != currUserName){
+
+                  let messageDiv = document.createElement("div")
+                  messageDiv.classList.add("message")
+                  messageDiv.innerHTML = `<p class="text">${data.message}</p>`
+
+                  let timeP = document.createElement("p")
+                  timeP.classList.add("time")
+                  timeP.innerText = data.user
+
+                  chatContainer.appendChild(messageDiv)
+                  chatContainer.appendChild(timeP)
+
+                }
+                else if(data.user == currUserName){
+
+                  let messageDiv = document.createElement("div")
+                  messageDiv.classList.add("message")
+                  messageDiv.innerHTML = `<div class="response">
+                                            <p class="text">${data.message}</p>
+                                          </div>`
+
+                  let timeP = document.createElement("p")
+                  timeP.classList.add("response-time", "time")
+                  timeP.innerText = "me"
+
+                  chatContainer.appendChild(messageDiv)
+                  chatContainer.appendChild(timeP)
+                }
+                
+                break;
+            case "user_join":
+              if(data.user != currUserName){
+                let user_joinP = document.createElement("p")
+                user_joinP.classList.add("user-join")
+                user_joinP.innerText = `${data.user} User Joined`;
+                chatContainer.appendChild(user_joinP)
+              }
+
+              break;
+            case "user_leave":
+              if(data.user != currUserName){
+                let user_leaveP = document.createElement("p")
+                user_leaveP.classList.add("user-leave")
+                user_leaveP.innerText = `${data.user} User Leaved`;
+                chatContainer.appendChild(user_leaveP)
+              }
+              break;
+            default:
+                console.error("Unknown message type!");
+                break;
+        }
+
+        chatContainer.scrollTop = chatContainer.scrollHeight
+      }
+
+      
+
+      webSocket.onerror = function(err) {
+        console.log("WebSocket encountered an error: " + err.message);
+        console.log("Closing the socket.");
+        chatSocket.close();
+      }
+
+
+      let btn = document.getElementById("send-msg-btn")
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+
+        if(document.getElementById("write-message").value != ""){
+          webSocket.send(JSON.stringify({
+              "message": document.getElementById("write-message").value,
+          }));
+        }
+        document.getElementById("write-message").value = "";
+      })
+
+      let chatContainer = document.getElementById('chat-container')
+      chatContainer.scrollTop = chatContainer.scrollHeight
+    }
+
+   </script>
+
+</body>
+</html>
